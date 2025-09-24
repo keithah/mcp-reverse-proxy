@@ -1,221 +1,263 @@
 # MCP Reverse Proxy with Management UI
 
-A comprehensive reverse proxy system for managing multiple MCP (Model Context Protocol) servers as child processes, featuring automatic HTTPS with Let's Encrypt, UPnP port mapping, and a web-based management interface for deploying services from GitHub repositories.
+A complete, self-contained reverse proxy system for managing multiple MCP (Model Context Protocol) servers. Features automatic HTTPS with Let's Encrypt, built-in Redis, web-based configuration wizard, and zero-config deployment. No environment variables or external dependencies required!
 
-## Features
+## ✨ Key Features
 
-- **Automatic HTTPS**: Let's Encrypt integration with auto-renewal
-- **Force SSL**: Automatic HTTP to HTTPS redirection
-- **UPnP Port Mapping**: Automatic router configuration for port forwarding
-- **Port Forwarding Detection**: Check if your ports are accessible from the internet
-- **Non-Standard Ports**: Enhanced security using non-common ports (8437, 3437, 8443)
-- **Process Management**: Spawn, monitor, restart, and terminate MCP server processes
-- **Reverse Proxy**: Single HTTP/WebSocket endpoint for all MCP communications
-- **GitHub Integration**: Deploy MCPs directly from GitHub repositories
-- **Web Management UI**: Real-time dashboard with network configuration
-- **Rate Limiting & Caching**: Built-in rate limiting and response caching
-- **Health Monitoring**: Track process health, memory usage, and responsiveness
-- **Auto-restart**: Configurable restart policies on crashes
-- **Secure API**: API key authentication and encrypted secret storage
+### 🚀 Zero Configuration Required
+- **Web-Based Setup Wizard**: Configure everything through the browser on first run
+- **No Environment Variables**: All settings managed through the UI
+- **Built-in Redis**: Redis server included in container - no external setup
+- **Automatic HTTPS**: Let's Encrypt certificates fetched and managed automatically
+- **Self-Contained**: Single Docker container with everything included
 
-## Quick Start
+### 🔒 Automatic SSL/HTTPS
+- **Let's Encrypt Integration**: Just enter your domain - certificates handled automatically
+- **Auto-Renewal**: Certificates renew automatically before expiration
+- **Force HTTPS**: Automatic HTTP to HTTPS redirection
+- **Cloudflare DNS Support**: Alternative validation without opening port 80
+- **Self-Signed Option**: For development environments
 
-### Using Docker Compose (Recommended)
+### 🌐 Network & Security
+- **UPnP Port Mapping**: Automatic router configuration
+- **Port Forwarding Detection**: Real-time port accessibility checking
+- **Non-Standard Ports**: Enhanced security (8437, 3437, 8443)
+- **API Key Authentication**: Secure access control
+- **Encrypted Secrets**: Sensitive data encrypted at rest
 
-1. Clone the repository:
+### 📦 MCP Management
+- **Process Management**: Spawn, monitor, restart MCP servers
+- **GitHub Deployment**: Deploy MCPs directly from repositories
+- **Health Monitoring**: Track process health and metrics
+- **Auto-restart**: Configurable restart policies
+- **Real-time Logs**: Stream logs from each MCP process
+- **Resource Limits**: CPU and memory constraints
+
+### 🎛️ Web Management Interface
+- **Initial Setup Wizard**: Step-by-step first-time configuration
+- **Settings Panel**: Comprehensive configuration management
+- **Real-time Dashboard**: Monitor all services
+- **Network Configuration**: Manage SSL, ports, and networking
+- **Backup/Restore**: Export and import configurations
+- **No Config Files**: Everything managed through the UI
+
+## 🚀 Quick Start
+
+### 1️⃣ Start the Container
+
 ```bash
-git clone https://github.com/yourusername/mcp-reverse-proxy.git
+# Clone the repository
+git clone https://github.com/keithah/mcp-reverse-proxy.git
 cd mcp-reverse-proxy
-```
 
-2. Copy environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
-
-3. Start the services:
-```bash
+# Start with Docker Compose
 docker-compose up -d
 ```
 
-4. Access the management UI at http://localhost:3000
+### 2️⃣ Open Setup Wizard
 
-### Manual Installation
+Navigate to: **http://localhost:3437**
 
-1. Install dependencies:
-```bash
-npm install
+The setup wizard will guide you through:
+1. **Network Configuration** - Set ports and UPnP settings
+2. **SSL/HTTPS Setup** - Configure Let's Encrypt or self-signed certificates
+3. **Security** - API keys are auto-generated
+4. **Database & Redis** - Already configured (built-in)
+5. **GitHub Integration** - Optional, for deploying MCPs
+6. **Review & Complete** - Save your API key!
+
+### 3️⃣ That's It!
+
+No configuration files, no environment variables, no external dependencies. Everything is configured through the web UI.
+
+## 🎯 First-Time Setup Wizard
+
+When you first access the system, you'll see:
+
+![Setup Wizard Steps]
+1. **Welcome Screen** - Overview of what will be configured
+2. **Network Settings** - Ports (8437, 3437, 8443) and UPnP auto-configuration
+3. **Security & SSL** - Choose Let's Encrypt or self-signed certificates
+4. **Built-in Services** - Redis status and connection testing
+5. **GitHub (Optional)** - Add token for repository deployments
+6. **Review & Complete** - Receive your API key for admin access
+
+### Automatic Let's Encrypt Setup
+
+During the SSL step, simply:
+1. Select "Let's Encrypt"
+2. Enter your domain (e.g., `mcp.yourdomain.com`)
+3. Enter your email
+4. Click "Complete Setup"
+
+The system will:
+- ✅ Contact Let's Encrypt automatically
+- ✅ Validate your domain
+- ✅ Download and install certificates
+- ✅ Configure HTTPS on port 8443
+- ✅ Set up auto-renewal
+- ✅ Force HTTP to HTTPS redirect
+
+No manual certificate management required!
+
+## 🎛️ Web-Based Configuration
+
+### No Environment Variables Needed!
+
+All configuration is done through the web UI. The system stores everything in a database and manages all settings internally.
+
+### Settings Panel
+
+Access the comprehensive settings panel by clicking the "Settings" button in the dashboard:
+
+- **Server Configuration**: Ports, environment settings
+- **Network Settings**: UPnP, port forwarding
+- **Security**: API keys, authentication (auto-generated)
+- **SSL/HTTPS**: Let's Encrypt, certificates
+- **Redis**: Built-in server status and testing
+- **GitHub**: Integration for MCP deployment
+- **Monitoring**: Logs, metrics, retention
+- **Backup/Restore**: Export and import configurations
+
+### Built-in Redis
+
+Redis is included in the Docker container and managed automatically:
+- No external Redis needed
+- Runs on localhost:6379 inside container
+- Managed by Supervisor
+- Persistent data storage
+- Zero configuration required
+
+### Configuration Storage
+
+All settings are stored in SQLite database:
+- `/app/data/mcp-proxy.db` - Main configuration database
+- Encrypted sensitive values
+- Persistent across container restarts
+- Backup and restore functionality
+
+## 🎯 Container Architecture
+
+### Single Container Solution
+
+The system runs as a single Docker container with multiple services managed by Supervisor:
+
+```
+mcp-proxy container:
+├── Redis Server (localhost:6379)
+├── Backend API (port 8437)
+├── Frontend UI (port 3437)
+├── HTTPS Server (port 8443)
+├── MCP Processes (managed)
+└── Supervisor (process manager)
 ```
 
-2. Set up environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+### Built-in Services
 
-3. Run database migrations:
-```bash
-npm run db:generate
-npm run db:migrate
-```
+- **Redis**: Cache and queue management
+- **SQLite**: Configuration and data storage
+- **Supervisor**: Process management and monitoring
+- **SSL Manager**: Automatic certificate handling
+- **UPnP Manager**: Network configuration
 
-4. Start the development server:
-```bash
-npm run dev
-```
+## 🔧 Advanced Configuration
 
-## Configuration
+### Let's Encrypt Options
 
-### Environment Variables
+Two certificate validation methods:
 
-```bash
-# Server Configuration - Non-Standard Ports for Security
-BACKEND_PORT=8437      # Main backend API port
-FRONTEND_PORT=3437     # Frontend UI port
-HTTPS_PORT=8443        # HTTPS port
-NODE_ENV=production
+**HTTP-01 Challenge (Default)**
+- Requires port 80 accessible from internet
+- Automatic domain validation
+- Works with most setups
 
-# SSL/HTTPS Configuration
-SSL_ENABLED=true
-FORCE_SSL=true         # Force redirect HTTP to HTTPS
-DOMAIN=your-domain.com
-SSL_EMAIL=admin@your-domain.com
-SSL_STAGING=false      # Set to true for testing
-SSL_PROVIDER=letsencrypt  # or 'self-signed'
-# Optional: For Cloudflare DNS challenge (recommended)
-CLOUDFLARE_TOKEN=your-cloudflare-api-token
+**DNS-01 Challenge (Cloudflare)**
+- No port 80 required
+- Uses Cloudflare API for DNS records
+- Better for behind firewalls/NAT
 
-# Network Configuration
-ENABLE_UPNP=true       # Auto-configure router port forwarding
-AUTO_MAP_PORTS=true    # Automatically map ports via UPnP
-# Optional: Manual IP configuration
-# PUBLIC_IP=x.x.x.x
-# PRIVATE_IP=192.168.x.x
+Configure in Settings → SSL/HTTPS → Provider Options
 
-# Database
-DATABASE_URL=./data/mcp-proxy.db
+### Network Ports
 
-# Redis (for BullMQ)
-REDIS_URL=redis://localhost:6379
+The system uses non-standard ports for security:
+- **8437**: Backend API (instead of 8080)
+- **3437**: Frontend UI (instead of 3000)
+- **8443**: HTTPS (instead of 443)
 
-# Security
-JWT_SECRET=your-secret-key-here
-ENCRYPTION_KEY=your-encryption-key-here
-API_KEY=your-api-key-here
+All ports are configurable through the UI.
 
-# GitHub Integration
-GITHUB_TOKEN=your-github-token
-GITHUB_WEBHOOK_SECRET=your-webhook-secret
-CLONE_DIRECTORY=./mcp-services
+### Security Features
 
-# Monitoring
-LOG_LEVEL=info
-ENABLE_METRICS=true
-```
+- **API Key Authentication**: Required for all admin functions
+- **Encrypted Storage**: Sensitive data encrypted at rest
+- **HSTS Headers**: Strict Transport Security
+- **CSP Headers**: Content Security Policy
+- **Rate Limiting**: Per-endpoint and global limits
+- **Process Isolation**: Each MCP runs separately
 
-## API Documentation
+## 📱 Using the System
 
-### MCP Proxy Endpoints
+### Access Points
 
-#### Send Request to MCP Service
-```http
-POST /mcp/{service-id}/*
-Content-Type: application/json
+After setup completion:
+- **HTTP**: `http://your-domain:8437` (redirects to HTTPS if SSL enabled)
+- **HTTPS**: `https://your-domain:8443` (with Let's Encrypt certificate)
+- **Local**: `http://localhost:3437` (for initial setup)
 
-{
-  "jsonrpc": "2.0",
-  "method": "methodName",
-  "params": {},
-  "id": 1
-}
-```
+## 🎛️ Management Interface
 
-#### WebSocket Connection
-```javascript
-const ws = new WebSocket('ws://localhost:8080/mcp/ws?service=service-id');
-```
+### Dashboard Features
 
-### Management API
+- **Service Overview**: All MCP services with real-time status
+- **Health Monitoring**: System health, uptime, resource usage
+- **Quick Actions**: Start, stop, restart services
+- **Real-time Updates**: Live status updates without refresh
 
-#### List Services
-```http
-GET /api/services
-X-API-Key: your-api-key
-```
+### Settings Panel
 
-#### Create Service
-```http
-POST /api/services
-X-API-Key: your-api-key
-Content-Type: application/json
+Comprehensive configuration management:
 
-{
-  "name": "my-mcp-service",
-  "repository": {
-    "url": "https://github.com/user/repo",
-    "branch": "main",
-    "entryPoint": "index.js"
-  },
-  "environment": {
-    "API_KEY": "value"
-  },
-  "proxy": {
-    "path": "/mcp/my-service",
-    "rateLimit": 100
-  },
-  "process": {
-    "autoRestart": true,
-    "maxRestarts": 5
-  }
-}
-```
+**Server Settings**
+- Port configuration (8437, 3437, 8443)
+- Environment settings
+- Performance tuning
 
-#### Start/Stop/Restart Service
-```http
-POST /api/services/{id}/start
-POST /api/services/{id}/stop
-POST /api/services/{id}/restart
-X-API-Key: your-api-key
-```
+**SSL/HTTPS Management**
+- Let's Encrypt setup and renewal
+- Certificate status and validation
+- Force HTTPS configuration
 
-### GitHub Integration API
+**Network Configuration**
+- UPnP port mapping status
+- Port forwarding testing
+- Public/Private IP detection
+- Router configuration status
 
-#### Deploy from GitHub
-```http
-POST /api/github/deploy
-X-API-Key: your-api-key
-Content-Type: application/json
+**Security Settings**
+- API key management
+- Authentication settings
+- Rate limiting configuration
 
-{
-  "repositoryUrl": "https://github.com/user/repo",
-  "branch": "main",
-  "serviceName": "my-service",
-  "environment": {
-    "API_KEY": "value"
-  }
-}
-```
+**Redis Management**
+- Built-in Redis server status
+- Connection testing
+- Performance metrics
 
-## Management UI
+**GitHub Integration**
+- Repository deployment settings
+- Webhook configuration
+- Token management
 
-The web-based management interface provides:
+**System Monitoring**
+- Log levels and retention
+- Metrics collection
+- Health check intervals
 
-- **Dashboard**: Overview of all services with status indicators
-- **Service Management**: Start, stop, restart, and delete services
-- **Real-time Logs**: Stream logs from each MCP process
-- **Metrics**: CPU, memory, and request metrics
-- **GitHub Deployment**: Deploy new services from GitHub repositories
-- **Configuration Editor**: Edit environment variables and settings
-- **Network Configuration**:
-  - SSL/HTTPS setup with Let's Encrypt
-  - Port forwarding status and testing
-  - UPnP configuration
-  - Public/Private IP detection
-- **Security Features**:
-  - Force SSL with HSTS headers
-  - Content Security Policy
-  - Non-standard ports to avoid scanning
+**Backup/Restore**
+- Configuration export
+- Settings import
+- Restore points
 
 ## MCP Service Requirements
 
@@ -282,99 +324,137 @@ npm run build
 npm start
 ```
 
-## Security Considerations
+## 🔐 Automatic Let's Encrypt Setup
 
-- **HTTPS by Default**: Automatic Let's Encrypt certificates with forced SSL
-- **Non-Standard Ports**: Uses 8437, 3437, 8443 instead of common ports
-- **HSTS Headers**: Strict Transport Security enabled
-- **CSP Headers**: Content Security Policy for XSS protection
-- **API Authentication**: All endpoints require API keys
-- **Encrypted Storage**: Environment variables encrypted at rest
-- **Webhook Verification**: GitHub webhook signatures verified
-- **Process Isolation**: MCPs run in separate processes
-- **Resource Limits**: Prevent runaway processes
-- **UPnP Security**: Optional - can be disabled for manual port forwarding
+### Zero-Touch SSL Configuration
 
-## SSL/HTTPS Setup
+The system handles Let's Encrypt automatically:
 
-### Let's Encrypt (Recommended for Production)
+1. **During Setup Wizard**:
+   - Select "Let's Encrypt" as SSL provider
+   - Enter your domain (e.g., `proxy.yourdomain.com`)
+   - Enter your email for certificate notifications
+   - Click "Complete Setup"
 
-1. **Prerequisites**:
-   - A domain name pointing to your server's public IP
-   - Port 80 and 443 (or your configured ports) accessible from internet
-   - Valid email address for certificate notifications
-
-2. **Configuration**:
-   ```bash
-   SSL_ENABLED=true
-   DOMAIN=your-domain.com
-   SSL_EMAIL=admin@your-domain.com
-   SSL_PROVIDER=letsencrypt
-   SSL_STAGING=false  # Use true for testing
+2. **What Happens Automatically**:
+   ```
+   System contacts Let's Encrypt
+   ↓
+   Validates domain ownership
+   ↓
+   Downloads SSL certificate
+   ↓
+   Installs and configures HTTPS
+   ↓
+   Sets up auto-renewal (daily checks)
+   ↓
+   Forces HTTP → HTTPS redirect
    ```
 
-3. **Cloudflare DNS Challenge** (Alternative - doesn't require port 80):
-   ```bash
-   CLOUDFLARE_TOKEN=your-api-token
-   ```
+3. **Certificate Renewal**:
+   - Automatic renewal before expiration
+   - Email notifications for any issues
+   - Zero downtime certificate updates
 
-### Self-Signed Certificates (Development)
+### Validation Methods
 
-1. The system will automatically generate a self-signed certificate
-2. Configure with:
-   ```bash
-   SSL_ENABLED=true
-   SSL_PROVIDER=self-signed
-   ```
+**HTTP-01 Challenge** (Default)
+- Port 80 must be accessible from internet
+- Automatic validation via HTTP
+- UPnP will map port 80 if enabled
 
-### Port Configuration
+**DNS-01 Challenge** (Cloudflare)
+- No port 80 required
+- Uses Cloudflare API
+- Add Cloudflare token in SSL settings
+- Better for complex network setups
 
-The system uses non-standard ports for enhanced security:
+### SSL Status Monitoring
 
-- **Backend API**: 8437 (instead of 8080)
-- **Frontend UI**: 3437 (instead of 3000)
-- **HTTPS**: 8443 (instead of 443)
+Check SSL status in real-time:
+- Settings → SSL/HTTPS → Certificate Status
+- Expiration dates and renewal status
+- Validation method and domain verification
 
-### UPnP Port Mapping
+## 📊 Built-in Redis & Supervisor
 
-If your router supports UPnP:
+### Redis Server
 
-1. The system will automatically configure port forwarding
-2. Check status in the Network Configuration panel
-3. Disable with `ENABLE_UPNP=false` if you prefer manual configuration
+Redis runs inside the container automatically:
+- **Port**: localhost:6379 (internal only)
+- **Persistence**: Data saved to `/app/data`
+- **Management**: Controlled by Supervisor
+- **Monitoring**: Status available in Settings → Redis
 
-### Manual Port Forwarding
+### Supervisor Process Management
 
-If UPnP is disabled or unavailable:
+All services managed by Supervisor:
+```
+[Redis Server] - Cache and queues
+[Backend API] - Main application
+[Frontend UI] - Management interface
+```
 
-1. Forward these ports in your router:
-   - External 8437 → Internal 8437 (Backend)
-   - External 3437 → Internal 3437 (Frontend)
-   - External 8443 → Internal 8443 (HTTPS)
+Process monitoring and auto-restart built-in.
 
-2. Test connectivity:
-   ```bash
-   curl https://your-domain.com:8443/health
-   ```
+## 🚨 Troubleshooting
 
-## Troubleshooting
+### Setup Issues
 
-### Service Won't Start
-- Check logs in `logs/` directory
-- Verify entry point exists
-- Ensure dependencies are installed
-- Check environment variables
+**Can't access http://localhost:3437**
+- Check Docker container is running: `docker-compose ps`
+- Verify port mapping in docker-compose.yml
+- Check container logs: `docker-compose logs`
 
-### Connection Refused
-- Verify service is running: `GET /api/services/{id}`
-- Check proxy path configuration
-- Review rate limits
+**Setup wizard won't complete**
+- Ensure Docker has write access to ./data directory
+- Check container logs for database errors
+- Verify all required dependencies loaded
 
-### GitHub Deployment Fails
-- Verify GitHub token has repository access
-- Check clone directory permissions
-- Ensure package.json exists in repository
-- Review deployment logs
+### SSL Certificate Issues
+
+**Let's Encrypt validation fails**
+- Verify domain points to your public IP
+- Check port 80 is accessible from internet
+- Try Cloudflare DNS validation instead
+- Use staging mode first to test
+
+**Certificate not renewing**
+- Check Settings → SSL/HTTPS → Certificate Status
+- Verify cron job is running
+- Check logs for renewal errors
+
+### Network Connection Issues
+
+**Can't connect to HTTPS**
+- Verify SSL certificate installed correctly
+- Check port 8443 is forwarded through router
+- Test with Settings → Network → Port Forwarding Check
+
+**UPnP not working**
+- Enable UPnP on your router
+- Check Settings → Network → UPnP Status
+- Manually forward ports if UPnP unavailable
+
+### Service Management
+
+**MCP service won't start**
+- Check Settings → Monitoring → Logs
+- Verify service configuration in database
+- Test GitHub repository access
+- Check resource limits and permissions
+
+**Redis connection failed**
+- Check Settings → Redis → Test Connection
+- Verify Redis process running in container
+- Check Supervisor status
+
+### Getting Help
+
+1. **Container Logs**: `docker-compose logs -f`
+2. **Settings Panel**: Check all status indicators
+3. **Network Panel**: Test port forwarding and SSL
+4. **Backup Config**: Export settings before troubleshooting
 
 ## Contributing
 
