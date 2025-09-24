@@ -152,7 +152,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                   <li>• Network ports and SSL certificates</li>
                   <li>• Security and authentication settings</li>
                   <li>• Database and Redis configuration</li>
-                  <li>• GitHub integration (optional)</li>
+                  <li>• GitHub integration (optional - only needed for private repos)</li>
                 </ul>
               </div>
             </div>
@@ -370,6 +370,16 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                 GitHub Integration (Optional)
               </h3>
 
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+                <h4 className="font-medium text-green-900 dark:text-green-300 mb-2">
+                  Public Repositories Work Without Token
+                </h4>
+                <p className="text-sm text-green-700 dark:text-green-400">
+                  You can deploy public MCP repositories without any GitHub token.
+                  Only add a token if you need access to private repositories or webhooks.
+                </p>
+              </div>
+
               <div className="flex items-center">
                 <input
                   type="checkbox"
@@ -403,7 +413,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
                       className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     />
                     <p className="mt-1 text-xs text-gray-500">
-                      Token needs repo scope for cloning repositories
+                      Only required for private repositories and webhooks. Public repos work without a token.
                     </p>
                   </div>
 

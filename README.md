@@ -79,7 +79,7 @@ When you first access the system, you'll see:
 2. **Network Settings** - Ports (8437, 3437, 8443) and UPnP auto-configuration
 3. **Security & SSL** - Choose Let's Encrypt or self-signed certificates
 4. **Built-in Services** - Redis status and connection testing
-5. **GitHub (Optional)** - Add token for repository deployments
+5. **GitHub (Optional)** - Add token for private repositories only (public repos work without token)
 6. **Review & Complete** - Receive your API key for admin access
 
 ### Automatic Let's Encrypt Setup
@@ -245,9 +245,9 @@ Comprehensive configuration management:
 - Performance metrics
 
 **GitHub Integration**
-- Repository deployment settings
-- Webhook configuration
-- Token management
+- Repository deployment settings (public repos work without token)
+- Webhook configuration (requires token)
+- Token management (optional for private repos only)
 
 **System Monitoring**
 - Log levels and retention
