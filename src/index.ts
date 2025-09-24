@@ -1,23 +1,22 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger as honoLogger } from 'hono/logger';
-import dotenv from 'dotenv';
 import { ProcessManager } from './lib/process-manager';
 import { createProxyRouter, createWebSocketProxy } from './server/proxy';
 import { createManagementAPI } from './server/api';
 import { createGitHubAPI } from './server/github-api';
 import { createNetworkAPI } from './server/network-api';
+import { createConfigAPI } from './server/config-api';
 import { GitHubService } from './lib/github';
-import { SSLManager, SSLConfigSchema } from './lib/network/ssl-manager';
-import { UPnPManager, NetworkConfigSchema } from './lib/network/upnp-manager';
+import { SSLManager } from './lib/network/ssl-manager';
+import { UPnPManager } from './lib/network/upnp-manager';
 import { HTTPSServer } from './server/https-server';
+import { configManager } from './lib/config-manager';
 import { db, runMigrations } from './lib/db';
 import { services } from './lib/db/schema';
 import { logger } from './lib/logger';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
-dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -27,38 +26,33 @@ async function main() {
     
     await runMigrations();
     logger.info('Database migrations completed');
-    
+
+    // Initialize configuration manager
+    await configManager.initialize();
+    const config = await configManager.getAll();
+
+    // Check if setup is required
+    const isFirstRun = await configManager.isFirstRun();
+    if (isFirstRun && process.env.INITIAL_SETUP === 'true') {
+      logger.info('First run detected - configuration will be done through web UI');
+    }
+
     const processManager = new ProcessManager();
-    const githubService = new GitHubService();
+    const githubService = new GitHubService(config.github?.cloneDirectory);
 
-    // Initialize SSL Manager
-    const sslConfig = SSLConfigSchema.parse({
-      enabled: process.env.SSL_ENABLED === 'true',
-      domain: process.env.DOMAIN,
-      email: process.env.SSL_EMAIL,
-      staging: process.env.SSL_STAGING !== 'false',
-      forceSSL: process.env.FORCE_SSL !== 'false',
-      provider: process.env.SSL_PROVIDER || 'letsencrypt',
-      cloudflareToken: process.env.CLOUDFLARE_TOKEN,
-    });
-
-    const sslManager = new SSLManager(sslConfig);
+    // Initialize SSL Manager from config
+    const sslManager = new SSLManager(config.ssl);
     await sslManager.initialize();
 
-    // Initialize UPnP Manager with non-standard ports
-    const networkConfig = NetworkConfigSchema.parse({
-      enableUPnP: process.env.ENABLE_UPNP !== 'false',
-      autoMapPorts: process.env.AUTO_MAP_PORTS !== 'false',
-      publicIP: process.env.PUBLIC_IP,
-      privateIP: process.env.PRIVATE_IP,
+    // Initialize UPnP Manager from config
+    const upnpManager = new UPnPManager({
+      ...config.network,
       ports: {
-        backend: parseInt(process.env.BACKEND_PORT || '8437'),
-        frontend: parseInt(process.env.FRONTEND_PORT || '3437'),
-        https: parseInt(process.env.HTTPS_PORT || '8443'),
+        backend: config.server.backendPort,
+        frontend: config.server.frontendPort,
+        https: config.server.httpsPort,
       },
     });
-
-    const upnpManager = new UPnPManager(networkConfig);
     await upnpManager.initialize();
     
     const dbServices = await db.select().from(services);
@@ -106,11 +100,13 @@ async function main() {
     const managementAPI = createManagementAPI(processManager, githubService);
     const githubAPI = createGitHubAPI(processManager, githubService);
     const networkAPI = createNetworkAPI(sslManager, upnpManager);
+    const configAPI = createConfigAPI();
 
     app.route('/', proxyRouter);
     app.route('/api', managementAPI);
     app.route('/api/github', githubAPI);
     app.route('/api/network', networkAPI);
+    app.route('/api/config', configAPI);
     
     app.get('/health', (c) => {
       const processes = processManager.getAllProcesses();
@@ -127,16 +123,16 @@ async function main() {
       });
     });
     
-    // Use non-standard ports
-    const httpPort = networkConfig.ports.backend;
-    const httpsPort = networkConfig.ports.https;
+    // Use ports from configuration
+    const httpPort = config.server.backendPort;
+    const httpsPort = config.server.httpsPort;
 
     const httpsServer = new HTTPSServer({
       app,
       httpPort,
       httpsPort,
       sslManager,
-      forceSSL: sslConfig.forceSSL,
+      forceSSL: config.ssl.forceSSL,
     });
 
     const servers = await httpsServer.start();

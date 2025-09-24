@@ -1,5 +1,8 @@
 FROM node:20-alpine AS base
 
+# Install Redis in the base image
+RUN apk add --no-cache redis supervisor
+
 # Install dependencies only when needed
 FROM base AS deps
 RUN apk add --no-cache libc6-compat git
@@ -24,8 +27,8 @@ WORKDIR /app
 
 ENV NODE_ENV production
 
-# Install git for cloning repositories
-RUN apk add --no-cache git
+# Install git for cloning repositories and Redis
+RUN apk add --no-cache git redis supervisor
 
 # Create a non-root user
 RUN addgroup --system --gid 1001 nodejs
@@ -38,17 +41,21 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src/migrations ./src/migrations
 
-# Create directories for data and logs
-RUN mkdir -p data logs mcp-services && \
-    chown -R nextjs:nodejs data logs mcp-services
+# Create directories for data, logs, Redis, and other resources
+RUN mkdir -p data logs mcp-services backups certs /var/run/redis /var/log/redis && \
+    chown -R nextjs:nodejs data logs mcp-services backups certs && \
+    chown redis:redis /var/run/redis /var/log/redis
+
+# Create supervisor configuration
+COPY --chown=nextjs:nodejs supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 USER nextjs
 
-EXPOSE 8080
-EXPOSE 3000
+EXPOSE 8437
+EXPOSE 3437
+EXPOSE 8443
 
-ENV PORT 8080
 ENV HOSTNAME "0.0.0.0"
 
-# Start both the backend and frontend
-CMD ["sh", "-c", "node dist/index.js & node server.js"]
+# Start services with supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

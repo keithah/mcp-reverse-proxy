@@ -1,50 +1,25 @@
 version: '3.8'
 
 services:
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-
   mcp-proxy:
     build: .
     ports:
-      - "8080:8080"  # Backend API
-      - "3000:3000"  # Frontend UI
+      - "8437:8437"  # Backend API (non-standard port)
+      - "3437:3437"  # Frontend UI (non-standard port)
+      - "8443:8443"  # HTTPS (non-standard port)
     environment:
       - NODE_ENV=production
-      - PORT=8080
-      - DATABASE_URL=/app/data/mcp-proxy.db
-      - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-here}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-encryption-key-here}
-      - API_KEY=${API_KEY:-your-api-key-here}
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
-      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
-      - CLONE_DIRECTORY=/app/mcp-services
-      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - INITIAL_SETUP=true
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
       - ./mcp-services:/app/mcp-services
-    depends_on:
-      redis:
-        condition: service_healthy
+      - ./backups:/app/backups
+      - ./certs:/app/certs
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8437/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-
-volumes:
-  redis_data:

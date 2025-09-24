@@ -1,18 +1,42 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ServiceCard } from './components/ServiceCard';
 import { AddServiceDialog } from './components/AddServiceDialog';
 import { DeployFromGitHubDialog } from './components/DeployFromGitHubDialog';
 import { NetworkConfigPanel } from './components/NetworkConfigPanel';
-import { Plus, Github, RefreshCw, Activity, Settings } from 'lucide-react';
+import { SetupWizard } from './components/SetupWizard';
+import { SettingsPanel } from './components/SettingsPanel';
+import { Plus, Github, RefreshCw, Activity, Settings, Sliders } from 'lucide-react';
 
 export default function Dashboard() {
   const [showAddService, setShowAddService] = useState(false);
   const [showDeployGitHub, setShowDeployGitHub] = useState(false);
   const [showNetworkConfig, setShowNetworkConfig] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [requiresSetup, setRequiresSetup] = useState<boolean | null>(null);
   const queryClient = useQueryClient();
+
+  // Check if initial setup is required
+  useEffect(() => {
+    fetch('/api/config/setup/status')
+      .then(res => res.json())
+      .then(data => {
+        setRequiresSetup(data.requiresSetup);
+        if (!data.requiresSetup && !localStorage.getItem('apiKey')) {
+          // If setup is complete but no API key stored, prompt for it
+          const apiKey = prompt('Please enter your API key:');
+          if (apiKey) {
+            localStorage.setItem('apiKey', apiKey);
+          }
+        }
+      })
+      .catch(err => {
+        console.error('Failed to check setup status:', err);
+        setRequiresSetup(false);
+      });
+  }, []);
 
   const { data: services, isLoading } = useQuery({
     queryKey: ['services'],
@@ -45,6 +69,29 @@ export default function Dashboard() {
     },
   });
 
+  // Show setup wizard if required
+  if (requiresSetup === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse">
+          <div className="h-12 w-48 bg-gray-200 dark:bg-gray-700 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (requiresSetup) {
+    return (
+      <SetupWizard
+        onComplete={(apiKey) => {
+          localStorage.setItem('apiKey', apiKey);
+          setRequiresSetup(false);
+          queryClient.invalidateQueries();
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <header className="bg-white dark:bg-gray-800 shadow">
@@ -64,11 +111,18 @@ export default function Dashboard() {
                 </div>
               )}
               <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                <Sliders className="h-4 w-4 mr-2" />
+                Settings
+              </button>
+              <button
                 onClick={() => setShowNetworkConfig(!showNetworkConfig)}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
               >
                 <Settings className="h-4 w-4 mr-2" />
-                Network Config
+                Network
               </button>
               <button
                 onClick={() => restartAllMutation.mutate()}
@@ -98,6 +152,11 @@ export default function Dashboard() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        {showSettings && (
+          <div className="mb-8">
+            <SettingsPanel />
+          </div>
+        )}
         {showNetworkConfig && (
           <div className="mb-8">
             <NetworkConfigPanel />

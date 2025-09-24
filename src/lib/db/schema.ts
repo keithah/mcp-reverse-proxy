@@ -1,6 +1,15 @@
 import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
+export const settings = sqliteTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  encrypted: integer('encrypted', { mode: 'boolean' }).default(false),
+  description: text('description'),
+  category: text('category').notNull(),
+  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const services = sqliteTable('services', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
