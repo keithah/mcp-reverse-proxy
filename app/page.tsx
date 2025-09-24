@@ -5,11 +5,13 @@ import { useState } from 'react';
 import { ServiceCard } from './components/ServiceCard';
 import { AddServiceDialog } from './components/AddServiceDialog';
 import { DeployFromGitHubDialog } from './components/DeployFromGitHubDialog';
-import { Plus, Github, RefreshCw, Activity } from 'lucide-react';
+import { NetworkConfigPanel } from './components/NetworkConfigPanel';
+import { Plus, Github, RefreshCw, Activity, Settings } from 'lucide-react';
 
 export default function Dashboard() {
   const [showAddService, setShowAddService] = useState(false);
   const [showDeployGitHub, setShowDeployGitHub] = useState(false);
+  const [showNetworkConfig, setShowNetworkConfig] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: services, isLoading } = useQuery({
@@ -62,6 +64,13 @@ export default function Dashboard() {
                 </div>
               )}
               <button
+                onClick={() => setShowNetworkConfig(!showNetworkConfig)}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Network Config
+              </button>
+              <button
                 onClick={() => restartAllMutation.mutate()}
                 disabled={restartAllMutation.isPending}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -89,6 +98,11 @@ export default function Dashboard() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        {showNetworkConfig && (
+          <div className="mb-8">
+            <NetworkConfigPanel />
+          </div>
+        )}
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

@@ -40,7 +40,15 @@
     "@tailwindcss/forms": "^0.5.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "greenlock-express": "^4.0.3",
+    "acme-dns-01-cloudflare": "^3.0.0",
+    "node-nat-upnp": "^1.1.1",
+    "public-ip": "^6.0.2",
+    "internal-ip": "^8.0.0",
+    "portscanner": "^2.2.0",
+    "systeminformation": "^5.22.0",
+    "node-forge": "^1.3.1"
   },
   "devDependencies": {
     "@types/node": "^20.14.11",
