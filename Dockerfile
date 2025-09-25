@@ -25,7 +25,7 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 # Install git for cloning repositories and Redis
 RUN apk add --no-cache git redis supervisor
@@ -55,7 +55,7 @@ EXPOSE 8437
 EXPOSE 3437
 EXPOSE 8443
 
-ENV HOSTNAME "0.0.0.0"
+ENV HOSTNAME="0.0.0.0"
 
 # Start services with supervisor
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
