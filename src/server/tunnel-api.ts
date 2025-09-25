@@ -146,10 +146,15 @@ export function createTunnelAPI(tunnelManager: TunnelManager, logger: winston.Lo
 
       // Try to fetch the health endpoint through the external URL
       const fetch = (await import('node-fetch')).default;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const response = await fetch(`${url}/health`, {
-        timeout: 10000,
+        signal: controller.signal,
         headers: { 'User-Agent': 'MCP-Proxy-Health-Check' }
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         return c.json({
