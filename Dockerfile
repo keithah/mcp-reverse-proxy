@@ -37,11 +37,10 @@ RUN adduser --system --uid 1001 nextjs
 # Copy built application
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
 
-# Create directories for data, logs, Redis, and other resources
-RUN mkdir -p data logs mcp-services backups certs /var/run/redis /var/log/redis && \
-    chown -R nextjs:nodejs data logs mcp-services backups certs && \
+# Create directories for data, logs, Redis, public, and other resources
+RUN mkdir -p data logs mcp-services backups certs public /var/run/redis /var/log/redis && \
+    chown -R nextjs:nodejs data logs mcp-services backups certs public && \
     chown redis:redis /var/run/redis /var/log/redis
 
 # Create supervisor configuration
