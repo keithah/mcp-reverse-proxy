@@ -94,6 +94,26 @@ export function createTunnelAPI(tunnelManager: TunnelManager, logger: winston.Lo
     }
   });
 
+  // Setup ngrok Tunnel
+  app.post('/ngrok/setup', async (c) => {
+    try {
+      const { authToken, domain, region } = await c.req.json();
+      const url = await tunnelManager.setupNgrok(authToken, domain, region);
+
+      return c.json({
+        success: true,
+        data: { url },
+        message: 'ngrok tunnel setup successfully'
+      });
+    } catch (error) {
+      logger.error('Failed to setup ngrok tunnel', { error });
+      return c.json({
+        success: false,
+        error: 'Failed to setup ngrok tunnel'
+      }, 500);
+    }
+  });
+
   // Setup UPnP
   app.post('/upnp/setup', async (c) => {
     try {

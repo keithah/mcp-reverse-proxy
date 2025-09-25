@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   mcp-proxy:
-    build: .
+    image: keithah/mcp-reverse-proxy:latest
     ports:
       - "8437:8437"  # Backend API (non-standard port)
       - "3437:3437"  # Frontend UI (non-standard port)

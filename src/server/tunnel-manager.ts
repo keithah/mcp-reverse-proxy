@@ -7,7 +7,7 @@ import * as winston from 'winston';
 const execAsync = promisify(exec);
 
 export interface TunnelConfig {
-  type: 'cloudflare' | 'tailscale' | 'upnp';
+  type: 'cloudflare' | 'tailscale' | 'ngrok' | 'upnp';
   enabled: boolean;
   config?: {
     cloudflare?: {
@@ -17,6 +17,11 @@ export interface TunnelConfig {
     tailscale?: {
       authKey?: string;
       funnel?: boolean;
+    };
+    ngrok?: {
+      authToken?: string;
+      domain?: string;
+      region?: string;
     };
     upnp?: {
       enabled: boolean;
@@ -76,19 +81,29 @@ export class TunnelManager {
 
   async setupCloudflareeTunnel(token: string, domain?: string): Promise<string> {
     try {
+      // If domain is provided and contains a dot, it's a custom domain
+      // Otherwise, use the trycloudflare.com subdomain
+      const isCustomDomain = domain && domain.includes('.');
+      const tunnelName = isCustomDomain ? domain.split('.')[0] : (domain || 'mcp-proxy');
+      const hostname = isCustomDomain ? domain : `${tunnelName}.trycloudflare.com`;
+
       // Create cloudflared config
       const tunnelConfig = {
-        tunnel: domain || 'mcp-proxy',
+        tunnel: tunnelName,
         credentials: token,
         ingress: [
           {
-            hostname: `${domain || 'mcp-proxy'}.trycloudflare.com`,
+            hostname: hostname,
             service: 'http://localhost:3437'
           },
-          {
-            hostname: `api-${domain || 'mcp-proxy'}.trycloudflare.com`,
+          // For custom domains, also handle API subdomain
+          ...(isCustomDomain ? [{
+            hostname: `api.${domain}`,
             service: 'http://localhost:8437'
-          },
+          }] : [{
+            hostname: `api-${tunnelName}.trycloudflare.com`,
+            service: 'http://localhost:8437'
+          }]),
           {
             service: 'http_status:404'
           }
@@ -117,9 +132,84 @@ export class TunnelManager {
       this.config.config!.cloudflare = { token, domain };
       this.saveConfig();
 
-      return `https://${domain || 'mcp-proxy'}.trycloudflare.com`;
+      return `https://${hostname}`;
     } catch (error) {
       this.logger.error('Failed to setup Cloudflare tunnel', { error });
+      throw error;
+    }
+  }
+
+  async setupNgrok(authToken?: string, domain?: string, region?: string): Promise<string> {
+    try {
+      // Authenticate with ngrok if token provided
+      if (authToken) {
+        await execAsync(`ngrok config add-authtoken ${authToken}`);
+      }
+
+      // Start ngrok tunnel for web interface
+      const ngrokArgs = [
+        'http',
+        '3437',
+        '--log=stdout',
+        '--log-level=info'
+      ];
+
+      // Add custom domain if provided
+      if (domain) {
+        ngrokArgs.push(`--hostname=${domain}`);
+      }
+
+      // Add region if provided
+      if (region) {
+        ngrokArgs.push(`--region=${region}`);
+      }
+
+      const process = spawn('ngrok', ngrokArgs, {
+        stdio: 'pipe'
+      });
+
+      let tunnelUrl = '';
+
+      process.stdout?.on('data', (data) => {
+        const output = data.toString();
+        this.logger.info('ngrok:', { data: output });
+
+        // Extract tunnel URL from ngrok output
+        const urlMatch = output.match(/https:\/\/[a-zA-Z0-9.-]+\.ngrok[a-zA-Z0-9.-]*\.io/);
+        if (urlMatch) {
+          tunnelUrl = urlMatch[0];
+        }
+      });
+
+      process.stderr?.on('data', (data) => {
+        this.logger.info('ngrok:', { data: data.toString() });
+      });
+
+      this.processes.set('ngrok', process);
+      this.config.type = 'ngrok';
+      this.config.enabled = true;
+      this.config.config!.ngrok = { authToken, domain, region };
+      this.saveConfig();
+
+      // Wait a bit for ngrok to establish tunnel
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // If we couldn't get URL from stdout, try ngrok API
+      if (!tunnelUrl) {
+        try {
+          const { stdout } = await execAsync('curl -s http://localhost:4040/api/tunnels');
+          const tunnels = JSON.parse(stdout);
+          if (tunnels.tunnels && tunnels.tunnels.length > 0) {
+            tunnelUrl = tunnels.tunnels[0].public_url;
+          }
+        } catch (error) {
+          this.logger.warn('Failed to get ngrok tunnel URL from API', { error });
+        }
+      }
+
+      return domain ? `https://${domain}` : (tunnelUrl || 'https://your-tunnel.ngrok.io');
+    } catch (error) {
+      this.logger.error('Failed to setup ngrok tunnel', { error });
       throw error;
     }
   }
@@ -200,12 +290,29 @@ export class TunnelManager {
     switch (this.config.type) {
       case 'cloudflare':
         const domain = this.config.config?.cloudflare?.domain || 'mcp-proxy';
-        return `https://${domain}.trycloudflare.com`;
+        const isCustomDomain = domain.includes('.');
+        return `https://${isCustomDomain ? domain : `${domain}.trycloudflare.com`}`;
 
       case 'tailscale':
         try {
           const { stdout } = await execAsync('tailscale ip -4');
           return `https://${stdout.trim()}`;
+        } catch {
+          return null;
+        }
+
+      case 'ngrok':
+        try {
+          // Try to get URL from ngrok API
+          const { stdout } = await execAsync('curl -s http://localhost:4040/api/tunnels');
+          const tunnels = JSON.parse(stdout);
+          if (tunnels.tunnels && tunnels.tunnels.length > 0) {
+            return tunnels.tunnels[0].public_url;
+          }
+
+          // Fallback to configured domain
+          const ngrokDomain = this.config.config?.ngrok?.domain;
+          return ngrokDomain ? `https://${ngrokDomain}` : null;
         } catch {
           return null;
         }

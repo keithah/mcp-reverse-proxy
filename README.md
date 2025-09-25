@@ -18,10 +18,12 @@ A complete, self-contained reverse proxy system for managing multiple MCP (Model
 - **Cloudflare DNS Support**: Alternative validation without opening port 80
 - **Self-Signed Option**: For development environments
 
-### 🌐 Network & Security
+### 🌐 Network & External Access
+- **Multiple Tunnel Options**: Cloudflare Tunnel, ngrok, Tailscale Funnel
 - **UPnP Port Mapping**: Automatic router configuration
 - **Port Forwarding Detection**: Real-time port accessibility checking
 - **Non-Standard Ports**: Enhanced security (8437, 3437, 8443)
+- **Zero-Config External Access**: No manual router configuration needed
 - **API Key Authentication**: Secure access control
 - **Encrypted Secrets**: Sensitive data encrypted at rest
 
@@ -43,7 +45,7 @@ A complete, self-contained reverse proxy system for managing multiple MCP (Model
 
 ## 🚀 Quick Start
 
-### 1️⃣ Start the Container
+### Option 1: Docker Compose (Recommended)
 
 ```bash
 # Clone the repository
@@ -52,6 +54,61 @@ cd mcp-reverse-proxy
 
 # Start with Docker Compose
 docker-compose up -d
+```
+
+### Option 2: Docker Hub (ARM64 & AMD64)
+
+```bash
+# Create data directories
+mkdir -p data logs mcp-services backups certs
+
+# Run from Docker Hub (works on ARM64 Oracle VMs)
+docker run -d \
+  --name mcp-proxy \
+  -p 8437:8437 \
+  -p 3437:3437 \
+  -p 8443:8443 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/logs:/app/logs \
+  -v $(pwd)/mcp-services:/app/mcp-services \
+  -v $(pwd)/backups:/app/backups \
+  -v $(pwd)/certs:/app/certs \
+  -e NODE_ENV=production \
+  -e INITIAL_SETUP=true \
+  --restart unless-stopped \
+  keithah/mcp-reverse-proxy:latest
+```
+
+### Option 3: Docker Compose for ARM64/Oracle Cloud
+
+```yaml
+# docker-compose.yml for ARM64 systems
+version: '3.8'
+
+services:
+  mcp-proxy:
+    image: keithah/mcp-reverse-proxy:latest
+    container_name: mcp-proxy
+    ports:
+      - "8437:8437"  # Backend API
+      - "3437:3437"  # Frontend UI
+      - "8443:8443"  # HTTPS
+    environment:
+      - NODE_ENV=production
+      - INITIAL_SETUP=true
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./mcp-services:/app/mcp-services
+      - ./backups:/app/backups
+      - ./certs:/app/certs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8437/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 ```
 
 ### 2️⃣ Open Setup Wizard
@@ -99,6 +156,154 @@ The system will:
 - ✅ Force HTTP to HTTPS redirect
 
 No manual certificate management required!
+
+## 🌐 External Access Options
+
+The MCP Reverse Proxy includes multiple ways to expose your services to the internet without manual router configuration:
+
+### 🚇 Cloudflare Tunnel
+
+Secure, encrypted tunnels without opening ports:
+
+```bash
+# Setup with subdomain (free)
+curl -X POST http://localhost:8437/api/tunnel/cloudflare/setup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "your-cloudflare-token",
+    "domain": "mcp-proxy"
+  }'
+# Creates: https://mcp-proxy.trycloudflare.com
+
+# Setup with custom domain
+curl -X POST http://localhost:8437/api/tunnel/cloudflare/setup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "your-cloudflare-token",
+    "domain": "mcp.yourdomain.com"
+  }'
+# Creates: https://mcp.yourdomain.com
+```
+
+**Benefits:**
+- ✅ No port forwarding required
+- ✅ DDoS protection included
+- ✅ Global CDN
+- ✅ **Custom domains supported** (own your URL)
+- ✅ Free subdomains (*.trycloudflare.com)
+- ✅ Automatic HTTPS certificates
+
+**Requirements:**
+- Cloudflare account
+- Cloudflare Tunnel token
+- For custom domains: Domain must be on Cloudflare DNS
+
+**Custom Domain Setup:**
+1. Add your domain to Cloudflare
+2. Create a Cloudflare Tunnel in the dashboard
+3. Get your tunnel token
+4. Use your full domain: `"domain": "mcp.yourdomain.com"`
+5. System automatically creates:
+   - Main UI: `https://mcp.yourdomain.com`
+   - API: `https://api.mcp.yourdomain.com`
+
+### 🚀 ngrok Tunnel
+
+Instant public URLs for development and testing:
+
+```bash
+# Setup via API
+curl -X POST http://localhost:8437/api/tunnel/ngrok/setup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "authToken": "your-ngrok-token",
+    "domain": "your-custom-domain.ngrok.io",
+    "region": "us"
+  }'
+```
+
+**Benefits:**
+- ✅ Instant setup
+- ✅ Custom domains (paid plans)
+- ✅ Multiple regions
+- ✅ Great for development
+
+**Requirements:**
+- ngrok account (free tier available)
+- ngrok auth token
+
+### 🔗 Tailscale Funnel
+
+Private network with public access:
+
+```bash
+# Setup via API
+curl -X POST http://localhost:8437/api/tunnel/tailscale/setup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "authKey": "your-tailscale-auth-key"
+  }'
+```
+
+**Benefits:**
+- ✅ Zero-trust networking
+- ✅ P2P connections
+- ✅ ACL controls
+- ✅ MagicDNS support
+
+**Requirements:**
+- Tailscale account
+- Tailscale auth key
+
+### 🔌 UPnP Port Mapping
+
+Automatic router configuration:
+
+```bash
+# Setup via API
+curl -X POST http://localhost:8437/api/tunnel/upnp/setup \
+  -H "Content-Type: application/json"
+```
+
+**Benefits:**
+- ✅ No external services
+- ✅ Direct connections
+- ✅ Low latency
+- ✅ No monthly costs
+
+**Requirements:**
+- UPnP enabled router
+- Public IP address
+
+### 🎯 Tunnel Management API
+
+All tunnel options are available via REST API at `/api/tunnel`:
+
+```bash
+# Get current tunnel status
+curl http://localhost:8437/api/tunnel/config
+
+# Test external connectivity
+curl -X POST http://localhost:8437/api/tunnel/test
+
+# Stop all tunnels
+curl -X POST http://localhost:8437/api/tunnel/stop
+```
+
+### 📱 Web UI Management
+
+Access tunnel configuration through the web interface:
+1. Open **Settings** → **Network** → **External Access**
+2. Choose your preferred tunnel method
+3. Enter required credentials
+4. Click **Setup Tunnel**
+5. Test connectivity with **Test Connection**
+
+The system will automatically:
+- Configure the tunnel service
+- Display your external URL
+- Monitor tunnel health
+- Handle reconnections
 
 ## 🎛️ Web-Based Configuration
 
@@ -470,4 +675,17 @@ MIT
 
 ## Support
 
-For issues and feature requests, please use the [GitHub issue tracker](https://github.com/yourusername/mcp-reverse-proxy/issues).
+For issues and feature requests, please use the [GitHub issue tracker](https://github.com/keithah/mcp-reverse-proxy/issues).
+
+## 🌟 What's New
+
+### v2.0 - External Access & Multi-Architecture Support
+- ✅ **Cloudflare Tunnel Support**: Zero-config secure tunnels
+- ✅ **ngrok Integration**: Instant public URLs
+- ✅ **Tailscale Funnel**: Zero-trust networking with public access
+- ✅ **Enhanced UPnP**: Automatic router configuration
+- ✅ **ARM64 Support**: Works on Oracle Cloud, Raspberry Pi, Apple Silicon
+- ✅ **Multi-Architecture Docker**: Single image for AMD64 and ARM64
+- ✅ **Docker Hub**: `keithah/mcp-reverse-proxy:latest`
+- ✅ **Tunnel Management API**: RESTful tunnel control
+- ✅ **Web UI Tunnel Config**: Point-and-click external access setup
