@@ -425,4 +425,3 @@ class ConfigManager {
 }
 
 export const configManager = new ConfigManager();
-export { Config, ConfigSchema };
