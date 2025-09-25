@@ -7,6 +7,8 @@ import { createManagementAPI } from './server/api';
 import { createGitHubAPI } from './server/github-api';
 import { createNetworkAPI } from './server/network-api';
 import { createConfigAPI } from './server/config-api';
+import { createTunnelAPI } from './server/tunnel-api';
+import { TunnelManager } from './server/tunnel-manager';
 import { GitHubService } from './lib/github';
 import { SSLManager } from './lib/network/ssl-manager';
 import { UPnPManager } from './lib/network/upnp-manager';
@@ -54,6 +56,29 @@ async function main() {
       },
     });
     await upnpManager.initialize();
+
+    // Initialize Tunnel Manager
+    const tunnelManager = new TunnelManager(logger, path.join(__dirname, '../data'));
+
+    // Auto-enable UPnP tunneling if configured
+    if (config.network.upnpEnabled) {
+      try {
+        await tunnelManager.updateConfig({
+          type: 'upnp',
+          enabled: true,
+          config: {
+            upnp: {
+              enabled: true,
+              ports: [config.server.backendPort, config.server.frontendPort, config.server.httpsPort]
+            }
+          }
+        });
+        await tunnelManager.setupUPnP();
+        logger.info('Auto-enabled UPnP tunneling from configuration');
+      } catch (error) {
+        logger.warn('Failed to auto-enable UPnP tunneling', { error });
+      }
+    }
     
     const dbServices = await db.select().from(services);
     for (const service of dbServices) {
@@ -101,12 +126,14 @@ async function main() {
     const githubAPI = createGitHubAPI(processManager, githubService);
     const networkAPI = createNetworkAPI(sslManager, upnpManager);
     const configAPI = createConfigAPI();
+    const tunnelAPI = createTunnelAPI(tunnelManager, logger);
 
     app.route('/', proxyRouter);
     app.route('/api', managementAPI);
     app.route('/api/github', githubAPI);
     app.route('/api/network', networkAPI);
     app.route('/api/config', configAPI);
+    app.route('/api/tunnel', tunnelAPI);
     
     app.get('/health', (c) => {
       const processes = processManager.getAllProcesses();
@@ -144,6 +171,7 @@ async function main() {
 
     const publicIP = await upnpManager.getExternalIP();
     const domain = sslManager.getDomain();
+    const externalURL = await tunnelManager.getExternalURL();
 
     logger.info('========================================');
     logger.info('MCP Reverse Proxy Started Successfully');
@@ -152,7 +180,9 @@ async function main() {
     if (servers.https) {
       logger.info(`HTTPS Server: https://localhost:${httpsPort}`);
     }
-    if (domain && publicIP) {
+    if (externalURL) {
+      logger.info(`External URL: ${externalURL}`);
+    } else if (domain && publicIP) {
       logger.info(`Public URL: https://${domain}:${httpsPort}`);
     } else if (publicIP) {
       logger.info(`Public IP: ${publicIP}`);
@@ -160,11 +190,13 @@ async function main() {
     logger.info('----------------------------------------');
     logger.info(`Management API: /api`);
     logger.info(`Network Config: /api/network`);
+    logger.info(`Tunnel Config: /api/tunnel`);
     logger.info(`Health Check: /health`);
     logger.info('========================================');
 
     process.on('SIGTERM', async () => {
       logger.info('Received SIGTERM, shutting down gracefully...');
+      await tunnelManager.stop();
       await upnpManager.cleanup();
       await processManager.stopAll();
       await httpsServer.stop();
@@ -173,6 +205,7 @@ async function main() {
 
     process.on('SIGINT', async () => {
       logger.info('Received SIGINT, shutting down gracefully...');
+      await tunnelManager.stop();
       await upnpManager.cleanup();
       await processManager.stopAll();
       await httpsServer.stop();
