@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.backend.json --skipLibCheck --noImplicitAny false && next build",
+    "build": "next build",
+    "build:backend": "tsc -p tsconfig.backend.json --skipLibCheck --noImplicitAny false",
     "start": "node dist/index.js",
     "test": "jest",
     "lint": "eslint . --ext .ts,.tsx",
