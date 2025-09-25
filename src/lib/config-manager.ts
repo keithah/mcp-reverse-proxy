@@ -20,6 +20,7 @@ const ConfigSchema = z.object({
   ssl: z.object({
     enabled: z.boolean().default(false),
     forceSSL: z.boolean().default(true),
+    autoRenew: z.boolean().default(true),
     provider: z.enum(['letsencrypt', 'self-signed']).default('letsencrypt'),
     domain: z.string().optional(),
     email: z.string().email().optional(),
@@ -33,6 +34,18 @@ const ConfigSchema = z.object({
     autoMapPorts: z.boolean().default(true),
     publicIP: z.string().optional(),
     privateIP: z.string().optional(),
+    ports: z.object({
+      backend: z.number().default(8437),
+      frontend: z.number().default(3437),
+      https: z.number().default(8443),
+    }).default({}),
+    mappings: z.array(z.object({
+      protocol: z.enum(['tcp', 'udp']),
+      public: z.number(),
+      private: z.number(),
+      description: z.string(),
+      ttl: z.number().default(0),
+    })).default([]),
   }),
   
   // Database Configuration

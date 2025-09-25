@@ -1,4 +1,4 @@
-import natUpnp from 'node-nat-upnp';
+import natUpnp from 'nat-upnp';
 import { publicIpv4, publicIpv6 } from 'public-ip';
 import { internalIpV4, internalIpV6 } from 'internal-ip';
 import portscanner from 'portscanner';

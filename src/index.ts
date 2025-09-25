@@ -61,7 +61,7 @@ async function main() {
     const tunnelManager = new TunnelManager(logger, path.join(__dirname, '../data'));
 
     // Auto-enable UPnP tunneling if configured
-    if (config.network.upnpEnabled) {
+    if (config.network.enableUPnP) {
       try {
         await tunnelManager.updateConfig({
           type: 'upnp',
