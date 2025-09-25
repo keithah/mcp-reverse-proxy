@@ -19,7 +19,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build the application
-RUN npm run build
+RUN npm run build:backend && npm run build
 
 # Production image, copy all the files and run the application
 FROM base AS runner
@@ -30,23 +30,25 @@ ENV NODE_ENV=production
 # Install git for cloning repositories and Redis
 RUN apk add --no-cache git redis supervisor
 
-# Create a non-root user
+# Create users
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+RUN adduser --system --uid 999 redis
 
 # Copy built application
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/dist ./dist
 
 # Create directories for data, logs, Redis, public, and other resources
 RUN mkdir -p data logs mcp-services backups certs public /var/run/redis /var/log/redis && \
-    chown -R nextjs:nodejs data logs mcp-services backups certs public && \
+    chown -R nextjs:nodejs data mcp-services backups certs public && \
+    chown -R root:root logs && \
+    chmod 755 logs && \
     chown redis:redis /var/run/redis /var/log/redis
 
 # Create supervisor configuration
-COPY --chown=nextjs:nodejs supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-USER nextjs
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 EXPOSE 8437
 EXPOSE 3437
