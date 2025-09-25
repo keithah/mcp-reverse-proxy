@@ -38,8 +38,6 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/src/migrations ./src/migrations
 
 # Create directories for data, logs, Redis, and other resources
 RUN mkdir -p data logs mcp-services backups certs /var/run/redis /var/log/redis && \
