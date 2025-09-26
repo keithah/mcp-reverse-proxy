@@ -2,7 +2,8 @@ import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import { z } from 'zod';
 import { logger } from './logger';
-import { JSONRPCRequest, JSONRPCResponse, parseJSONRPCMessage } from 'jsonrpc-lite';
+import jsonrpcLite from 'jsonrpc-lite';
+const { JSONRPCRequest, JSONRPCResponse, parseJSONRPCMessage } = jsonrpcLite;
 
 export const MCPConfigSchema = z.object({
   id: z.string(),

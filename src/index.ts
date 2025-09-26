@@ -14,7 +14,7 @@ import { SSLManager } from './lib/network/ssl-manager';
 import { UPnPManager } from './lib/network/upnp-manager';
 import { HTTPSServer } from './server/https-server';
 import { configManager } from './lib/config-manager';
-import { db, runMigrations } from './lib/db';
+import { db, runMigrations } from './lib/db/index';
 import { services } from './lib/db/schema';
 import { logger } from './lib/logger';
 import path from 'path';

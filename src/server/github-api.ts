@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { z } from 'zod';
 import { ProcessManager } from '../lib/process-manager';
 import { GitHubService, DeployRequestSchema } from '../lib/github';
-import { db } from '../lib/db';
+import { db } from '../lib/db/index';
 import { services } from '../lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '../lib/logger';

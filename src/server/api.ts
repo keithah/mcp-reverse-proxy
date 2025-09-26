@@ -3,7 +3,7 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 import { ProcessManager, MCPConfigSchema } from '../lib/process-manager';
-import { db } from '../lib/db';
+import { db } from '../lib/db/index';
 import { services, logs, metrics } from '../lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '../lib/logger';
@@ -285,39 +285,8 @@ export function createManagementAPI(
     }
   });
 
-  app.ws('/services/:id/logs/stream', (c) => {
-    const id = c.req.param('id');
-    const process = processManager.getProcess(id);
-    
-    if (!process) {
-      c.close(1008, 'Service not found');
-      return;
-    }
-    
-    const logHandler = (message: string) => {
-      c.send(JSON.stringify({
-        type: 'log',
-        timestamp: new Date().toISOString(),
-        message,
-      }));
-    };
-    
-    const errorHandler = (message: string) => {
-      c.send(JSON.stringify({
-        type: 'error',
-        timestamp: new Date().toISOString(),
-        message,
-      }));
-    };
-    
-    process.on('log', logHandler);
-    process.on('error', errorHandler);
-    
-    c.on('close', () => {
-      process.removeListener('log', logHandler);
-      process.removeListener('error', errorHandler);
-    });
-  });
+  // Note: WebSocket support for log streaming is handled by createWebSocketProxy
+  // in the main server setup, not via Hono's WebSocket API
 
   return app;
 }

@@ -1,6 +1,6 @@
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
-import { db } from '../../lib/db';
+import { db } from '../../lib/db/index';
 import { apiKeys } from '../../lib/db/schema';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';

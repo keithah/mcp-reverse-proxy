@@ -1,4 +1,4 @@
-import { db } from './db';
+import { db } from './db/index';
 import { settings } from './db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import CryptoJS from 'crypto-js';
@@ -7,14 +7,14 @@ import { logger } from './logger';
 import fs from 'fs/promises';
 import path from 'path';
 
-const ConfigSchema = z.object({
+export const ConfigSchema = z.object({
   // Server Configuration
   server: z.object({
     backendPort: z.number().min(1024).max(65535).default(8437),
     frontendPort: z.number().min(1024).max(65535).default(3437),
     httpsPort: z.number().min(1024).max(65535).default(8443),
     nodeEnv: z.enum(['development', 'production', 'test']).default('production'),
-  }),
+  }).default({}),
   
   // SSL Configuration
   ssl: z.object({
@@ -26,7 +26,7 @@ const ConfigSchema = z.object({
     email: z.string().email().optional(),
     staging: z.boolean().default(false),
     cloudflareToken: z.string().optional(),
-  }),
+  }).default({}),
   
   // Network Configuration
   network: z.object({
@@ -46,14 +46,14 @@ const ConfigSchema = z.object({
       description: z.string(),
       ttl: z.number().default(0),
     })).default([]),
-  }),
-  
+  }).default({}),
+
   // Database Configuration
   database: z.object({
     url: z.string().default('./data/mcp-proxy.db'),
     backupEnabled: z.boolean().default(true),
     backupInterval: z.number().default(86400000), // 24 hours
-  }),
+  }).default({}),
   
   // Redis Configuration
   redis: z.object({
@@ -63,7 +63,7 @@ const ConfigSchema = z.object({
     password: z.string().optional(),
     db: z.number().default(0),
     tls: z.boolean().default(false),
-  }),
+  }).default({}),
   
   // Security Configuration
   security: z.object({
@@ -73,7 +73,7 @@ const ConfigSchema = z.object({
     encryptionKey: z.string().optional(),
     allowedOrigins: z.array(z.string()).default(['localhost']),
     sessionTimeout: z.number().default(86400000), // 24 hours
-  }),
+  }).default({}),
   
   // GitHub Configuration
   github: z.object({
@@ -82,7 +82,7 @@ const ConfigSchema = z.object({
     webhookSecret: z.string().optional(),
     cloneDirectory: z.string().default('./mcp-services'),
     autoUpdate: z.boolean().default(true),
-  }),
+  }).default({}),
   
   // Monitoring Configuration
   monitoring: z.object({
@@ -90,7 +90,7 @@ const ConfigSchema = z.object({
     enableMetrics: z.boolean().default(true),
     metricsInterval: z.number().default(60000), // 1 minute
     retentionDays: z.number().default(30),
-  }),
+  }).default({}),
   
   // System Configuration
   system: z.object({
@@ -98,7 +98,7 @@ const ConfigSchema = z.object({
     maxProcesses: z.number().default(10),
     processTimeout: z.number().default(30000),
     healthCheckInterval: z.number().default(30000),
-  }),
+  }).default({}),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
